@@ -7,17 +7,6 @@ let charList = {};
 
 let io;
 
-const directions = {
-  DOWNLEFT: 0,
-  DOWN: 1,
-  DOWNRIGHT: 2,
-  LEFT: 3,
-  UPLEFT: 4,
-  RIGHT: 5,
-  UPRIGHT: 6,
-  UP: 7,
-};
-
 const physics = child.fork('./server/physics.js');
 
 physics.on('message', (m) => {
@@ -38,11 +27,11 @@ physics.on('error', (error) => {
 });
 
 physics.on('close', (code, signal) => {
-  console.log('Child closed');
+  console.log(`Child closed${signal}`);
 });
 
 physics.on('exit', (code, signal) => {
-  console.log('Child exited');
+  console.log(`Child exited${signal}`);
 });
 
 
@@ -61,35 +50,36 @@ const setupSockets = (ioServer) => {
     socket.hash = hash;
 
     socket.emit('joined', charList[hash]);
-    
+
     physics.send(new Message('char', charList[hash]));
-    
+
 
     socket.on('movementUpdate', (data) => {
       if (charList[socket.hash] === undefined) {
         socket.join('room1');
 
-        const hash = xxh.h32(`${socket.id}${new Date().getTime()}`, 0xCAFEBABE).toString(16);
+        const hash2 = xxh.h32(`${socket.id}${new Date().getTime()}`, 0xCAFEBABE).toString(16);
 
         charList[hash] = new Character(hash);
 
-        socket.hash = hash;
+        socket.hash = hash2;
 
         socket.emit('joined', charList[hash]);
 
         physics.send(new Message('char', charList[hash]));
       }
-      
+
       charList[socket.hash].movement = data;
       charList[socket.hash].lastUpdate = new Date().getTime();
-      
-      physics.send(new Message('charMoved', { hash: socket.hash, movement: charList[socket.hash].movement }));
+
+      physics.send(new Message('charMoved',
+                               { hash: socket.hash, movement: charList[socket.hash].movement }));
     });
 
     socket.on('disconnect', () => {
       io.sockets.in('room1').emit('left', charList[socket.hash]);
       delete charList[socket.hash];
-      
+
       physics.send(new Message('charList', charList));
 
       socket.leave('room1');
