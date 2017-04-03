@@ -3,7 +3,7 @@ const child = require('child_process');
 const Character = require('./messages/Character.js');
 const Message = require('./messages/Message.js');
 
-const charList = {};
+let charList = {};
 
 let io;
 
@@ -17,6 +17,34 @@ const directions = {
   UPRIGHT: 6,
   UP: 7,
 };
+
+const physics = child.fork('./server/physics.js');
+
+physics.on('message', (m) => {
+  switch (m.type) {
+    case 'charList': {
+      io.sockets.in('room1').emit('updatedMovement', m.data);
+      charList = m.data;
+      break;
+    }
+    default: {
+      console.log('received unknown type');
+    }
+  }
+});
+
+physics.on('error', (error) => {
+  console.dir(error);
+});
+
+physics.on('close', (code, signal) => {
+  console.log('Child closed');
+});
+
+physics.on('exit', (code, signal) => {
+  console.log('Child exited');
+});
+
 
 const setupSockets = (ioServer) => {
   io = ioServer;
@@ -33,57 +61,36 @@ const setupSockets = (ioServer) => {
     socket.hash = hash;
 
     socket.emit('joined', charList[hash]);
+    
+    physics.send(new Message('char', charList[hash]));
+    
 
     socket.on('movementUpdate', (data) => {
-      charList[socket.hash] = data;
+      if (charList[socket.hash] === undefined) {
+        socket.join('room1');
+
+        const hash = xxh.h32(`${socket.id}${new Date().getTime()}`, 0xCAFEBABE).toString(16);
+
+        charList[hash] = new Character(hash);
+
+        socket.hash = hash;
+
+        socket.emit('joined', charList[hash]);
+
+        physics.send(new Message('char', charList[hash]));
+      }
+      
+      charList[socket.hash].movement = data;
       charList[socket.hash].lastUpdate = new Date().getTime();
-
-      io.sockets.in('room1').emit('updatedMovement', charList[socket.hash]);
-    });
-
-    socket.on('attack', (data) => {
-      const attack = data;
-
-      let handleAttack = true;
-
-      switch (attack.direction) {
-        case directions.DOWN: {
-          attack.width = 66;
-          attack.height = 183;
-          attack.y = attack.y + 121;
-          break;
-        }
-        case directions.LEFT: {
-          attack.width = 183;
-          attack.height = 66;
-          attack.x = attack.x - 183;
-          break;
-        }
-        case directions.RIGHT: {
-          attack.width = 183;
-          attack.height = 66;
-          attack.x = attack.x + 61;
-          break;
-        }
-        case directions.UP: {
-          attack.width = 66;
-          attack.height = 183;
-          attack.y = attack.y - 183;
-          break;
-        }
-        default: {
-          handleAttack = false;
-        }
-      }
-
-      if (handleAttack) {
-        io.sockets.in('room1').emit('attackUpdate', attack);
-      }
+      
+      physics.send(new Message('charMoved', { hash: socket.hash, movement: charList[socket.hash].movement }));
     });
 
     socket.on('disconnect', () => {
       io.sockets.in('room1').emit('left', charList[socket.hash]);
       delete charList[socket.hash];
+      
+      physics.send(new Message('charList', charList));
 
       socket.leave('room1');
     });

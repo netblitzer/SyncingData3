@@ -19,7 +19,8 @@ const lerp = (v0, v1, alpha) => {
 };
 
 const redraw = (time) => {
-  updatePosition();
+  
+  socket.emit('movementUpdate', squares[hash].movement);
 
   ctx.clearRect(0, 0, 500, 500);
 
@@ -42,6 +43,8 @@ const redraw = (time) => {
     square.x = lerp(square.prevX, square.destX, square.alpha);
     square.y = lerp(square.prevY, square.destY, square.alpha);
 
+    //console.log(square.movement);
+    
     // if we are mid animation or moving in any direction
     if(square.frame > 0 || (square.moveUp || square.moveDown || square.moveRight || square.moveLeft)) {
       square.frameCount++;
@@ -70,24 +73,5 @@ const redraw = (time) => {
     ctx.strokeRect(square.x, square.y, spriteSizes.WIDTH, spriteSizes.HEIGHT);
   }
   
-  for(let i = 0; i < attacks.length; i++) {
-    const attack = attacks[i];
-    
-    ctx.drawImage(
-      slashImage,
-      attack.x,
-      attack.y,
-      attack.width,
-      attack.height
-    );
-    
-    attack.frames++;
-    
-    if(attack.frames > 30) {
-      attacks.splice(i);
-      i--;
-    }
-  }
-
   animationFrame = requestAnimationFrame(redraw);
 };

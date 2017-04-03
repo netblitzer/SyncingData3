@@ -8,53 +8,44 @@ let hash;
 let animationFrame;
 
 let squares = {};
-let attacks = [];
 
 const keyDownHandler = (e) => {
   var keyPressed = e.which;
   const square = squares[hash];
 
-  // W OR UP
-  if(keyPressed === 87 || keyPressed === 38) {
-    square.moveUp = true;
-  }
+  
   // A OR LEFT
-  else if(keyPressed === 65 || keyPressed === 37) {
-    square.moveLeft = true;
-  }
-  // S OR DOWN
-  else if(keyPressed === 83 || keyPressed === 40) {
-    square.moveDown = true;
+  if(keyPressed === 65 || keyPressed === 37) {
+    square.movement.left = true;
   }
   // D OR RIGHT
   else if(keyPressed === 68 || keyPressed === 39) {
-    square.moveRight = true;
+    square.movement.right = true;
+  }
+  // SPACE
+  else if(keyPressed === 32) {
+    square.movement.space = true;
   }
 };
 
 const keyUpHandler = (e) => {
   var keyPressed = e.which;
   const square = squares[hash];
-
-  // W OR UP
-  if(keyPressed === 87 || keyPressed === 38) {
-    square.moveUp = false;
-  }
+  
+  
   // A OR LEFT
-  else if(keyPressed === 65 || keyPressed === 37) {
-    square.moveLeft = false;
-  }
-  // S OR DOWN
-  else if(keyPressed === 83 || keyPressed === 40) {
-    square.moveDown = false;
+  if(keyPressed === 65 || keyPressed === 37) {
+    square.movement.left = false;
   }
   // D OR RIGHT
   else if(keyPressed === 68 || keyPressed === 39) {
-    square.moveRight = false;
+    square.movement.right = false;
   }
+  // SPACE
   else if(keyPressed === 32) {
-    sendAttack();
+    square.movement.space = false;
   }
+
 };
 
 const init = () => {
@@ -68,8 +59,6 @@ const init = () => {
 
   socket.on('joined', setUser);
   socket.on('updatedMovement', update);
-  socket.on('attackHit', playerDeath);
-  socket.on('attackUpdate', receiveAttack);
   socket.on('left', removeUser);
 
   document.body.addEventListener('keydown', keyDownHandler);

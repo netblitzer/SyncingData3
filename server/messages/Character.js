@@ -11,13 +11,27 @@ class Character {
     this.height = 100;
     this.width = 100;
     this.alpha = 0;
-    this.direction = 0;
     this.frame = 0;
     this.frameCount = 0;
-    this.moveLeft = false;
-    this.moveRight = false;
-    this.moveDown = false;
-    this.moveUp = false;
+    this.force = {
+      x: 0,
+      y: 0,
+    };
+    this.acceleration = {
+      x: 0,
+      y: 0,
+    };
+    this.velocity = {
+      x: 0,
+      y: 0,
+    };
+    this.movement = {
+      down: false,
+      left: false,
+      right: false,
+      up: false,
+      space: false,
+    };
   }
 }
 
